@@ -94,6 +94,11 @@ function commit_markup ($event) {
 	return substr($s, 2);
 }
 
+# Cuts a substring off the start of a string
+function cut ($prefix, $from) {
+	return substr($from, strlen($prefix));
+}
+
 if (
 	$_SERVER['REQUEST_METHOD'] === 'POST' &&
 	$_SERVER['CONTENT_TYPE'] === 'application/json' &&
@@ -105,7 +110,7 @@ if (
 ){
 	$valid_hooks = [
 		'Push Hook',
-		#'Tag Push Hook',
+		'Tag Push Hook',
 		#'Issue Hook',
 		#'Note Hook',
 		#'Merge Request Hook',
@@ -121,8 +126,6 @@ if (
 		switch ($hook)
 		{
 		case 'Push Hook':
-			$embed = [];
-
 			# a deleted branch checks out to null sha1
 			# (event->after is the full sha1)
 			if (is_null($event->checkout_sha))
@@ -145,12 +148,29 @@ if (
 				}
 			}
 
-			$branch = substr($event->ref, strlen('refs/heads/'));
+			$branch = cut('refs/heads/', $event->ref);
 			$embed['title'] .= " `$branch`";
+			break;
 
-			discord($event, $embed);
+		case 'Tag Push Hook':
+			$tag = cut('refs/tags/', $event->ref);
+
+			if (is_null($event->checkout_sha))
+				$embed = ['title' => 'Deleted tag'];
+			else
+			{
+				$embed = [
+					'title' => 'Pushed tag',
+					'description' => $event->message,
+					'url' => "{$event->project->web_url}/tags/$tag"
+				];
+			}
+
+			$embed['title'] .= " `$tag`";
 			break;
 		}
+
+		discord($event, $embed);
 	}
 	else
 		http_response_code(400);
