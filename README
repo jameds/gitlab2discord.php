@@ -4,3 +4,19 @@ formats a Discord webhook request.
 The php script requires two parameters in the query string, webhook "id" and
 "token".
 A request may then be sent to https://discordapp.com/api/webhooks/id/token
+
+Optional parameters:
+
+display_name=string - override the webhook name
+use_project_avatar
+multiuse - includes the project namespace in the footer of the webhook
+
+Supported events:
+
+Push
+Tag Push
+Note (except Confidential, or on Snippets)
+Issue
+Confidential Issue
+Merge Request
+Wiki Page
