@@ -21,7 +21,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 function discord ($event, $embed) {
 	$u = "https://discordapp.com/api/webhooks/{$_GET['id']}/{$_GET['token']}";
-	$h = curl_init($u);
+	$h = curl_init("$u?wait=true");
 
 	$user = $event->user_name ?? $event->user->name;
 	$avatar = $event->user_avatar ?? $event->user->avatar_url;
@@ -50,7 +50,14 @@ function discord ($event, $embed) {
 		CURLOPT_RETURNTRANSFER => TRUE,
 	]);
 
-	http_response_code(curl_exec($h));
+	$body = curl_exec($h);
+	$code = curl_getinfo($h, CURLINFO_RESPONSE_CODE);
+
+	if ($code >= 400)
+	{
+		echo "Discord said $code...\n$body";
+		http_response_code(500);
+	}
 }
 
 # returns $n $noun, or pluralises $noun if $n > 1
