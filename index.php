@@ -176,12 +176,6 @@ function issue_hook ($issue, $event) {
 	return $embed;
 }
 
-# Check if wiki event is using the default message for an action.
-function using_default_message ($action, $event) {
-	return $event->object_attributes->message === "$action " .
-		$event->object_attributes->slug;
-}
-
 if (
 	$_SERVER['REQUEST_METHOD'] === 'POST' &&
 	$_SERVER['CONTENT_TYPE'] === 'application/json' &&
@@ -314,9 +308,11 @@ EOT;
 				'url' => $event->object_attributes->url,
 			];
 
+			$m = $event->object_attributes->message;
+
 			if (
-				! using_default_message('Create', $event) &&
-				! using_default_message('Update', $event)
+				$m !== "Create {$event->object_attributes->slug}" &&
+				$m !== "Update {$event->object_attributes->title}"
 			){
 				$embed['description'] = $event->object_attributes->message;
 			}
