@@ -146,6 +146,8 @@ function issue_hook ($issue, $event) {
 			$event->object_attributes->description;
 	}
 
+	$embed['description'] = markup($embed['description'], $event);
+
 	return $embed;
 }
 
