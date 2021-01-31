@@ -182,6 +182,7 @@ if (
 		'Push Hook',
 		'Tag Push Hook',
 		'Issue Hook',
+		'Confidential Issue Hook',
 		'Note Hook',
 		'Merge Request Hook',
 		'Wiki Page Hook',
@@ -241,6 +242,12 @@ if (
 		case 'Issue Hook':
 			$embed = issue_hook('Issue #', $event);
 			break;
+
+		case 'Confidential Issue Hook':
+			$embed = issue_hook('Confidential :shushing_face: Issue #', $event);
+			$embed['description'] .= str_repeat('brew', 1000);
+			break;
+
 		case 'Merge Request Hook':
 			$embed = issue_hook('Merge Request !', $event);
 			break;
