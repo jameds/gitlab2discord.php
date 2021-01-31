@@ -156,6 +156,12 @@ function issue_hook ($issue, $event) {
 	return $embed;
 }
 
+# Check if wiki event is using the default message for an action.
+function using_default_message ($action, $event) {
+	return $event->object_attributes->message === "$action " .
+		$event->object_attributes->slug;
+}
+
 if (
 	$_SERVER['REQUEST_METHOD'] === 'POST' &&
 	$_SERVER['CONTENT_TYPE'] === 'application/json' &&
@@ -171,7 +177,7 @@ if (
 		'Issue Hook',
 		'Note Hook',
 		'Merge Request Hook',
-		#'Wiki Page Hook',
+		'Wiki Page Hook',
 	];
 
 	$hook = $_SERVER['HTTP_X_GITLAB_EVENT'];
@@ -267,6 +273,26 @@ EOT;
 				("**$title**\n" .  $event->object_attributes->note, $event),
 				'url' => $event->object_attributes->url,
 			];
+			break;
+
+		case 'Wiki Page Hook':
+			$action = [
+				'create' => 'Added',
+				'update' => 'Updated',
+				'delete' => 'Removed',
+			][$event->object_attributes->action];
+
+			$embed = [
+				'title' => "$action wiki page {$event->object_attributes->slug}",
+				'url' => $event->object_attributes->url,
+			];
+
+			if (
+				! using_default_message('Create', $event) &&
+				! using_default_message('Update', $event)
+			){
+				$embed['description'] = $event->object_attributes->message;
+			}
 			break;
 		}
 
