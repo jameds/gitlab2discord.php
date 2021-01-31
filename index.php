@@ -34,7 +34,7 @@ function discord ($event, $embed) {
 	{
 		$embed['footer'] = [
 			'text' => $event->project->path_with_namespace,
-			'icon_url' => $event->project->avatar_url,
+			'icon_url' => $_GET['custom_avatar'] ?? $event->project->avatar_url,
 		];
 	}
 
