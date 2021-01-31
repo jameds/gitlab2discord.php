@@ -107,6 +107,12 @@ function past_tense ($verb) {
 	return $verb . (substr($verb, -1) === 'e' ? 'd' : 'ed');
 }
 
+# Prepends the state of the issue if it is no longer open.
+function posthumous ($issue, $issue_attributes) {
+	return $issue_attributes->state === 'opened' ?
+		$issue : "{$issue_attributes->state} $issue";
+}
+
 function issue_hook ($issue, $event) {
 	if ($event->object_attributes->action === 'update')
 	{
@@ -126,8 +132,7 @@ function issue_hook ($issue, $event) {
 			die('But the request was ignored.');
 		}
 
-		if ($event->object_attributes->state !== 'opened')
-			$changed .= ' ' . $event->object_attributes->state;
+		$issue = posthumous($issue, $event->object_attributes);
 	}
 	else
 		$changed = ucfirst(past_tense($event->object_attributes->action));
@@ -164,7 +169,7 @@ if (
 		'Push Hook',
 		'Tag Push Hook',
 		'Issue Hook',
-		#'Note Hook',
+		'Note Hook',
 		'Merge Request Hook',
 		#'Wiki Page Hook',
 	];
@@ -225,6 +230,43 @@ if (
 			break;
 		case 'Merge Request Hook':
 			$embed = issue_hook('Merge Request !', $event);
+			break;
+
+		case 'Note Hook':
+			switch ($event->object_attributes->noteable_type)
+			{
+			case 'Issue':
+				$object = posthumous('Issue #' .
+					$event->issue->iid, $event->issue);
+				$title = $event->issue->title;
+				break;
+
+			case 'MergeRequest':
+				$object = posthumous('Merge Request !' .
+					$event->merge_request->iid, $event->merge_request);
+				$title = $event->merge_request->title;
+				break;
+
+			case 'Commit':
+				$id = substr($event->commit->id, 0, 7);
+				$object = "commit `$id`";
+				$title = strtok($event->commit->message, "\n");
+				break;
+			}
+
+			if (isset ($event->object_attributes->position))
+			{
+				$object = <<<EOT
+`{$event->object_attributes->position->new_path}` from $object
+EOT;
+			}
+
+			$embed = [
+				'title' => "Commented on $object",
+				'description' => markup
+				("**$title**\n" .  $event->object_attributes->note, $event),
+				'url' => $event->object_attributes->url,
+			];
 			break;
 		}
 
