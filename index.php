@@ -30,22 +30,29 @@ function discord ($event, $embed) {
 	if (isset ($embed['description']) && strlen($embed['description']) > 2048)
 		unset($embed['description']);
 
-	$json = [
-		'username' => "{$event->project->name} Repository Update",
-		'avatar_url' => $event->project->avatar_url,
+	if (isset ($_GET['multiuse']))
+	{
+		$embed['footer'] = [
+			'text' => $event->project->path_with_namespace,
+			'icon_url' => $event->project->avatar_url,
+		];
+	}
 
+	$json = [
 		'embeds' => [array_merge($embed, [
 			'author' => [
 				'name' => "{$event->project->name} via $user",
 				'url' => $event->project->web_url,
 				'icon_url' => $avatar,
 			],
-			'footer' => [
-				'text' => $event->project->path_with_namespace,
-				'icon_url' => $event->project->avatar_url,
-			],
 		])],
 	];
+
+	if (isset ($_GET['use_project_avatar']))
+		$json['avatar_url'] = $event->project->avatar_url;
+
+	if (isset ($_GET['display_name']))
+		$json['username'] = $_GET['display_name'];
 
 	curl_setopt_array($h, [
 		CURLOPT_CUSTOMREQUEST => 'POST',
