@@ -26,6 +26,10 @@ function discord ($event, $embed) {
 	$user = $event->user_name ?? $event->user->name;
 	$avatar = $event->user_avatar ?? $event->user->avatar_url;
 
+	# Apparently the limit.
+	if (isset ($embed['description']) && strlen($embed['description']) > 2048)
+		unset($embed['description']);
+
 	$json = [
 		'username' => "{$event->project->name} Repository Update",
 		'avatar_url' => $event->project->avatar_url,
