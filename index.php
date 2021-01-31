@@ -41,7 +41,7 @@ function discord ($event, $embed) {
 	$json = [
 		'embeds' => [array_merge($embed, [
 			'author' => [
-				'name' => "{$event->project->name} via $user",
+				'name' => "$user via {$event->project->name}",
 				'url' => $event->project->web_url,
 				'icon_url' => $avatar,
 			],
