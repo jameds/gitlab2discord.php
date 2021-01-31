@@ -9,6 +9,7 @@ Optional parameters:
 
 display_name=string - override the webhook name
 use_project_avatar
+custom_avatar=string
 multiuse - includes the project namespace in the footer of the webhook
 
 Supported events:

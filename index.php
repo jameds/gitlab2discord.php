@@ -50,6 +50,8 @@ function discord ($event, $embed) {
 
 	if (isset ($_GET['use_project_avatar']))
 		$json['avatar_url'] = $event->project->avatar_url;
+	elseif (isset ($_GET['custom_avatar']))
+		$json['avatar_url'] = $_GET['custom_avatar'];
 
 	if (isset ($_GET['display_name']))
 		$json['username'] = $_GET['display_name'];
