@@ -23,15 +23,18 @@ function discord ($event, $embed) {
 	$u = "https://discordapp.com/api/webhooks/{$_GET['id']}/{$_GET['token']}";
 	$h = curl_init($u);
 
+	$user = $event->user_name ?? $event->user->name;
+	$avatar = $event->user_avatar ?? $event->user->avatar_url;
+
 	$json = [
 		'username' => "{$event->project->name} Repository Update",
 		'avatar_url' => $event->project->avatar_url,
 
 		'embeds' => [array_merge($embed, [
 			'author' => [
-				'name' => "{$event->project->name} via {$event->user_name}",
+				'name' => "{$event->project->name} via $user",
 				'url' => $event->project->web_url,
-				'icon_url' => $event->user_avatar,
+				'icon_url' => $avatar,
 			],
 			'footer' => [
 				'text' => $event->project->path_with_namespace,
@@ -99,6 +102,53 @@ function cut ($prefix, $from) {
 	return substr($from, strlen($prefix));
 }
 
+# Returns past tense of a verb.
+function past_tense ($verb) {
+	return $verb . (substr($verb, -1) === 'e' ? 'd' : 'ed');
+}
+
+function issue_hook ($issue, $event) {
+	if ($event->object_attributes->action === 'update')
+	{
+		if (isset ($event->changes->description))
+			$changed = 'Changed the description of';
+		elseif (isset ($event->changes->title))
+			$changed = 'Changed the title of';
+		elseif (
+			isset ($event->object_attributes->oldrev) &&
+			$event->object_attributes->source_project_id !== $event->project->id
+		){
+			$changed = 'Made commits to'; # update for external merge request
+		}
+		else
+		{
+			http_response_code(202);
+			die('But the request was ignored.');
+		}
+
+		if ($event->object_attributes->state !== 'opened')
+			$changed .= ' ' . $event->object_attributes->state;
+	}
+	else
+		$changed = ucfirst(past_tense($event->object_attributes->action));
+
+	$embed = [
+		'title' => "$changed $issue{$event->object_attributes->iid}",
+		'url' => $event->object_attributes->url,
+		'description' => "**{$event->object_attributes->title}**",
+	];
+
+	if (
+		$event->object_attributes->action === 'open' ||
+		isset ($event->changes->description)
+	){
+		$embed['description'] .= "\n" .
+			$event->object_attributes->description;
+	}
+
+	return $embed;
+}
+
 if (
 	$_SERVER['REQUEST_METHOD'] === 'POST' &&
 	$_SERVER['CONTENT_TYPE'] === 'application/json' &&
@@ -111,9 +161,9 @@ if (
 	$valid_hooks = [
 		'Push Hook',
 		'Tag Push Hook',
-		#'Issue Hook',
+		'Issue Hook',
 		#'Note Hook',
-		#'Merge Request Hook',
+		'Merge Request Hook',
 		#'Wiki Page Hook',
 	];
 
@@ -132,9 +182,8 @@ if (
 				$embed = ['title' => 'Deleted branch'];
 			else
 			{
-				$embed = [
-					'url' => "{$event->project->web_url}/commits/{$event->after}"
-				];
+				$embed =
+					['url' => "{$event->project->web_url}/commits/{$event->after}"];
 
 				if (empty($event->commits))
 					$embed['title'] = 'Pushed new branch';
@@ -167,6 +216,13 @@ if (
 			}
 
 			$embed['title'] .= " `$tag`";
+			break;
+
+		case 'Issue Hook':
+			$embed = issue_hook('Issue #', $event);
+			break;
+		case 'Merge Request Hook':
+			$embed = issue_hook('Merge Request !', $event);
 			break;
 		}
 
