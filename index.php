@@ -281,7 +281,7 @@ if (
 				break;
 			}
 
-			if (isset ($event->object_attributes->position))
+			if ($event->object_attributes->type === 'DiffNote')
 			{
 				$object = <<<EOT
 `{$event->object_attributes->position->new_path}` from $object
