@@ -336,7 +336,7 @@ EOT;
 			}
 
 			$embed = [
-				'title' == "Commented on $object",
+				'title' => "Commented on $object",
 				'url' => $event->object_attributes->url,
 			];
 
