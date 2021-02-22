@@ -19,34 +19,48 @@ ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-function discord ($event, $embed) {
+function discord ($event, $embeds) {
 	$u = "https://discordapp.com/api/webhooks/{$_GET['id']}/{$_GET['token']}";
 	$h = curl_init("$u?wait=true");
 
 	$user = $event->user_name ?? $event->user->name;
 	$avatar = $event->user_avatar ?? $event->user->avatar_url;
 
-	# Apparently the limit.
-	if (isset ($embed['description']) && strlen($embed['description']) > 2048)
-		unset($embed['description']);
+	if (count($embeds) > 10)
+	{
+		unset($embeds[0]['description'], $embed[0]['description']);
+		$embeds = [$embeds[0]];
+	}
+	else
+	{
+		# If any part of the description is too long, just drop it.
+		foreach ($embeds as $embed)
+		{
+			if (isset ($embed['description']) &&
+				strlen($embed['description']) > 2048) # Apparently the limit.
+			{
+				unset($embeds[0]['description'], $embeds[0]['image']);
+				$embeds = [$embeds[0]];
+				break;
+			}
+		}
+	}
 
 	if (isset ($_GET['multiuse']))
 	{
-		$embed['footer'] = [
+		$embeds[sizeof($embeds) - 1]['footer'] = [
 			'text' => $event->project->path_with_namespace,
 			'icon_url' => $_GET['custom_avatar'] ?? $event->project->avatar_url,
 		];
 	}
 
-	$json = [
-		'embeds' => [array_merge($embed, [
-			'author' => [
-				'name' => "$user via {$event->project->name}",
-				'url' => $event->project->web_url,
-				'icon_url' => $avatar,
-			],
-		])],
+	$embeds[0]['author'] = [
+		'name' => "$user via {$event->project->name}",
+		'url' => $event->project->web_url,
+		'icon_url' => $avatar,
 	];
+
+	$json = ['embeds' => $embeds];
 
 	if (isset ($_GET['use_project_avatar']))
 		$json['avatar_url'] = $event->project->avatar_url;
@@ -92,6 +106,7 @@ function markup ($text, $event) {
 		'/\b([\w-_]+)!(\d+)/',
 		'/(?:[^!-~])#(\d+)/',
 		'/(?:[^!-~])!(\d+)/',
+		'/!\[((?:(?!\]).)+)\]\(\/(uploads\/(?:(?!\)).)+)\)/',
 	], [
 		' ',
 		"[\$0]($root/\$1/issues/\$2)",
@@ -100,7 +115,35 @@ function markup ($text, $event) {
 		"[\$0]($up/\$1/merge_request/\$2)",
 		"[\$0]($here/issues/\$1)",
 		"[\$0]($here/merge_requests/\$1)",
+		"![\$1]($here/\$2)",
 	], $text);
+}
+
+# Splits text into multiple embeds of description
+# and/or image between GitLab markdown images.
+function split_images ($text) {
+	$embeds = [];
+	$from = 0;
+
+	$matches = preg_match_all('/!\[(?:(?!\]).)+\]\(((?:(?!\)).)+)\)/', $text,
+		$captures, PREG_OFFSET_CAPTURE);
+
+	for ($i = 0; $i < $matches; ++$i)
+	{
+		$cap = $captures[0][$i];
+		$embeds[$i] = [
+			'description' => substr($text, $from, $cap[1] - $from),
+			'image' => ['url' => $captures[1][$i][0]],
+		];
+		$from += $cap[1] + strlen($cap[0]);
+	}
+
+	if ($from < strlen($text))
+	{
+		$embeds[$i] = ['description' => substr($text, $from)];
+	}
+
+	return $embeds;
 }
 
 # Makes a commit list in markup :)
@@ -167,13 +210,15 @@ function issue_hook ($issue, $event) {
 		$event->object_attributes->action === 'open' ||
 		isset ($event->changes->description)
 	){
-		$embed['description'] .= "\n" .
-			$event->object_attributes->description;
+		$embeds = split_images(markup
+			("**{$event->object_attributes->title}**\n" .
+			$event->object_attributes->description, $event));
+		$embeds[0] = array_merge($embeds[0], $embed);
 	}
+	else
+		$embeds = [[$embed]];
 
-	$embed['description'] = markup($embed['description'], $event);
-
-	return $embed;
+	return $embeds;
 }
 
 if (
@@ -227,6 +272,7 @@ if (
 
 			$branch = cut('refs/heads/', $event->ref);
 			$embed['title'] .= " `$branch`";
+			discord($event, [$embed]);
 			break;
 
 		case 'Tag Push Hook':
@@ -244,19 +290,20 @@ if (
 			}
 
 			$embed['title'] .= " `$tag`";
+			discord($event, [$embed]);
 			break;
 
 		case 'Issue Hook':
-			$embed = issue_hook('Issue #', $event);
+			discord($event, issue_hook('Issue #', $event));
 			break;
 
 		case 'Confidential Issue Hook':
-			$embed = issue_hook('Confidential :shushing_face: Issue #', $event);
-			$embed['description'] .= str_repeat('brew', 1000);
+			$embeds = issue_hook('Confidential :shushing_face: Issue #', $event);
+			discord($event, $embeds);
 			break;
 
 		case 'Merge Request Hook':
-			$embed = issue_hook('Merge Request !', $event);
+			discord($event, issue_hook('Merge Request !', $event));
 			break;
 
 		case 'Note Hook':
@@ -289,11 +336,15 @@ EOT;
 			}
 
 			$embed = [
-				'title' => "Commented on $object",
-				'description' => markup
-				("**$title**\n" .  $event->object_attributes->note, $event),
+				'title' == "Commented on $object",
 				'url' => $event->object_attributes->url,
 			];
+
+			$embeds = split_images(markup
+				("**$title**\n" .  $event->object_attributes->note, $event));
+			$embeds[0] = array_merge($embeds[0], $embed);
+
+			discord($event, $embeds);
 			break;
 
 		case 'Wiki Page Hook':
@@ -314,12 +365,16 @@ EOT;
 				$m !== "Create {$event->object_attributes->slug}" &&
 				$m !== "Update {$event->object_attributes->title}"
 			){
-				$embed['description'] = $event->object_attributes->message;
+				$embeds = split_images(markup
+					($event->object_attributes->message, $event));
+				$embeds[0] = array_merge($embeds[0], $embed);
 			}
+			else
+				$embeds = [[$embed]];
+
+			discord($event, $embeds);
 			break;
 		}
-
-		discord($event, $embed);
 	}
 	else
 		http_response_code(400);
