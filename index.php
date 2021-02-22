@@ -203,7 +203,6 @@ function issue_hook ($issue, $event) {
 	$embed = [
 		'title' => "$changed $issue{$event->object_attributes->iid}",
 		'url' => $event->object_attributes->url,
-		'description' => "**{$event->object_attributes->title}**",
 	];
 
 	if (
