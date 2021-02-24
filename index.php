@@ -205,17 +205,21 @@ function issue_hook ($issue, $event) {
 		'url' => $event->object_attributes->url,
 	];
 
+	$title = "**{$event->object_attributes->title}**";
+
 	if (
 		$event->object_attributes->action === 'open' ||
 		isset ($event->changes->description)
 	){
 		$embeds = split_images(markup
-			("**{$event->object_attributes->title}**\n" .
-			$event->object_attributes->description, $event));
+			($title . "\n" .  $event->object_attributes->description, $event));
 		$embeds[0] = array_merge($embeds[0], $embed);
 	}
 	else
-		$embeds = [[$embed]];
+	{
+		$embed['description'] = $title;
+		$embeds = [$embed];
+	}
 
 	return $embeds;
 }
