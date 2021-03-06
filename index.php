@@ -131,11 +131,12 @@ function split_images ($text) {
 	for ($i = 0; $i < $matches; ++$i)
 	{
 		$cap = $captures[0][$i];
+		$ofs = $cap[1] - $from;
 		$embeds[$i] = [
-			'description' => substr($text, $from, $cap[1] - $from),
+			'description' => substr($text, $from, $ofs),
 			'image' => ['url' => $captures[1][$i][0]],
 		];
-		$from += $cap[1] + strlen($cap[0]);
+		$from += $ofs + strlen($cap[0]);
 	}
 
 	if ($from < strlen($text))
