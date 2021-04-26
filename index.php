@@ -28,7 +28,7 @@ function discord ($event, $embeds) {
 
 	if (count($embeds) > 10)
 	{
-		unset($embeds[0]['description'], $embed[0]['description']);
+		unset($embeds[0]['description'], $embeds[0]['image']);
 		$embeds = [$embeds[0]];
 	}
 	else
