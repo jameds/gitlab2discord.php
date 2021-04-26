@@ -369,14 +369,10 @@ EOT;
 				$m !== "Create {$event->object_attributes->slug}" &&
 				$m !== "Update {$event->object_attributes->title}"
 			){
-				$embeds = split_images(markup
-					($event->object_attributes->message, $event));
-				$embeds[0] = array_merge($embeds[0], $embed);
+				$embed['description'] = markup($m, $event);
 			}
-			else
-				$embeds = [[$embed]];
 
-			discord($event, $embeds);
+			discord($event, [$embed]);
 			break;
 		}
 	}
@@ -386,4 +382,5 @@ EOT;
 else
 	http_response_code(400);
 
+// vim: tw=80
 ?>
