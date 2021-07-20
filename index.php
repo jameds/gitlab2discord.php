@@ -177,6 +177,12 @@ function posthumous ($issue, $issue_attributes) {
 		$issue : "{$issue_attributes->state} $issue";
 }
 
+# Prepends confidential issue annotation.
+function confidential ($issue, $issue_attributes) {
+	return $issue_attributes->confidential ?
+		"Confidential :shushing_face: $issue" : $issue;
+}
+
 function issue_hook ($issue, $event) {
 	if ($event->object_attributes->action === 'update')
 	{
@@ -240,6 +246,7 @@ if (
 		'Issue Hook',
 		'Confidential Issue Hook',
 		'Note Hook',
+		'Confidential Note Hook',
 		'Merge Request Hook',
 		'Wiki Page Hook',
 	];
@@ -298,12 +305,9 @@ if (
 			break;
 
 		case 'Issue Hook':
-			discord($event, issue_hook('Issue #', $event));
-			break;
-
 		case 'Confidential Issue Hook':
-			$embeds = issue_hook('Confidential :shushing_face: Issue #', $event);
-			discord($event, $embeds);
+			discord($event, issue_hook(confidential('Issue #',
+				$event->object_attributes), $event));
 			break;
 
 		case 'Merge Request Hook':
@@ -311,11 +315,12 @@ if (
 			break;
 
 		case 'Note Hook':
+		case 'Confidential Note Hook':
 			switch ($event->object_attributes->noteable_type)
 			{
 			case 'Issue':
-				$object = posthumous('Issue #' .
-					$event->issue->iid, $event->issue);
+				$object = posthumous(confidential('Issue #' .
+					$event->issue->iid, $event->issue), $event->issue);
 				$title = $event->issue->title;
 				break;
 
