@@ -1,4 +1,4 @@
-gitlab2discord is a PHP script that parses GitLab (10.8) webhook requests and
+gitlab2discord is a PHP script that parses GitLab (14.0) webhook requests and
 formats a Discord webhook request.
 
 The php script requires two parameters in the query string, webhook "id" and
@@ -16,7 +16,8 @@ Supported events:
 
 Push
 Tag Push
-Note (except Confidential, or on Snippets)
+Note (except Snippets)
+Confidential Note
 Issue
 Confidential Issue
 Merge Request
