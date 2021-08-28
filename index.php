@@ -168,7 +168,8 @@ function cut ($prefix, $from) {
 
 # Returns past tense of a verb.
 function past_tense ($verb) {
-	return $verb . (substr($verb, -1) === 'e' ? 'd' : 'ed');
+	$suf = substr($verb, -1);
+	return $suf !== 'd' ? $verb . ($suf === 'e' ? 'd' : 'ed') : $verb;
 }
 
 # Prepends the state of the issue if it is no longer open.
