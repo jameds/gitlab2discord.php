@@ -125,7 +125,7 @@ function split_images ($text) {
 	$embeds = [];
 	$from = 0;
 
-	$matches = preg_match_all('/!\[(?:(?!\]).)+\]\(((?:(?!\)).)+)\)/', $text,
+	$matches = preg_match_all('/!\[(?:(?!\]).)*\]\(((?:(?!\)).)+)\)/', $text,
 		$captures, PREG_OFFSET_CAPTURE);
 
 	for ($i = 0; $i < $matches; ++$i)
