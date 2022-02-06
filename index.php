@@ -184,10 +184,20 @@ function confidential ($issue, $issue_attributes) {
 		"Confidential :shushing_face: $issue" : $issue;
 }
 
+function normalize_lf ($text) {
+	return str_replace("\r\n", "\n", $text);
+}
+
+function text_changed ($change = NULL) {
+	return isset ($change) &&
+		normalize_lf($change->previous) !==
+		normalize_lf($change->current);
+}
+
 function issue_hook ($issue, $event) {
 	if ($event->object_attributes->action === 'update')
 	{
-		if (isset ($event->changes->description))
+		if (text_changed($event->changes->description))
 			$changed = 'Changed the description of';
 		elseif (isset ($event->changes->title))
 			$changed = 'Changed the title of';
