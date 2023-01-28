@@ -50,9 +50,15 @@ function truncate (&$obj, &$rem, $limits) {
 				truncate($v, $rem, $limit);
 			else
 			{
-				$v = substr($v, 0, min($limit, $rem));
+				$n = min($limit, $rem);
+
+				if (strlen($v) > $n)
+				{
+					$v = substr($v, 0, $n);
+					$status |= 1;
+				}
+
 				$rem -= strlen($v);
-				$status |= 1;
 			}
 		}
 	}
