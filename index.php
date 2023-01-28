@@ -1,6 +1,6 @@
 <?php
 /*
-Copyright 2021, James R.
+Copyright 2023, James R.
 All rights reserved.
 
 Redistribution of source code, with or without modification, is permitted
@@ -19,6 +19,47 @@ ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
+# https://discord.com/developers/docs/resources/channel#embed-object-embed-limits
+define ('LIMITS', [
+	'title' => 256,
+	'description' => 4096,
+	'footer' => [
+		'text' => 2048
+	],
+	'author' => [
+		'name' => 256,
+	]
+]);
+
+define ('TRUNCATED_WARNING', <<<EOF
+*Part of this content was truncated due to Discord's message limits.*
+EOF);
+
+function truncate (&$obj, &$rem, $limits) {
+	$status = 0;
+
+	foreach ($limits as $k => $limit)
+	{
+		if (isset ($obj[$k]))
+		{
+			# If this were done before checking isset,
+			# the element would be implicitly created.
+			$v = &$obj[$k];
+
+			if (is_array($limit))
+				truncate($v, $rem, $limit);
+			else
+			{
+				$v = substr($v, 0, min($limit, $rem));
+				$rem -= strlen($v);
+				$status |= 1;
+			}
+		}
+	}
+
+	return $status;
+}
+
 function discord ($event, $embeds) {
 	$u = "https://discordapp.com/api/webhooks/{$_GET['id']}/{$_GET['token']}";
 	$h = curl_init("$u?wait=true");
@@ -27,24 +68,7 @@ function discord ($event, $embeds) {
 	$avatar = $event->user_avatar ?? $event->user->avatar_url;
 
 	if (count($embeds) > 10)
-	{
-		unset($embeds[0]['description'], $embeds[0]['image']);
-		$embeds = [$embeds[0]];
-	}
-	else
-	{
-		# If any part of the description is too long, just drop it.
-		foreach ($embeds as $embed)
-		{
-			if (isset ($embed['description']) &&
-				strlen($embed['description']) > 2048) # Apparently the limit.
-			{
-				unset($embeds[0]['description'], $embeds[0]['image']);
-				$embeds = [$embeds[0]];
-				break;
-			}
-		}
-	}
+		array_splice($embeds, 10);
 
 	if (isset ($_GET['multiuse']))
 	{
@@ -59,6 +83,26 @@ function discord ($event, $embeds) {
 		'url' => $event->project->web_url,
 		'icon_url' => $avatar,
 	];
+
+	# 1. Embed fields have individual limits.
+	# 2. The embed overall has a limit.
+	# 3. It is an error for an embed field to be set to an
+	#    empty string or pure whitespace.
+
+	$rem = 6000 - strlen(TRUNCATED_WARNING);
+	$truncated = 0;
+
+	foreach ($embeds as &$embed)
+	{
+		$truncated |= truncate($embed, $rem, LIMITS);
+	}
+
+	if ($truncated)
+	{
+		$embeds[sizeof($embeds) - 1]['footer'] = [
+			'text' => TRUNCATED_WARNING,
+		];
+	}
 
 	$json = ['embeds' => $embeds];
 
