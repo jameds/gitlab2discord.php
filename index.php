@@ -145,8 +145,8 @@ function plural ($n, $noun) {
 # Squashes repeated whitespace. Also expands issue tokens.
 function markup ($text, $event) {
 	$here = $event->project->web_url;
-	$root = substr($here, 0, -(strlen($event->project->path_with_namespace)));
-	$up = substr($here, 0, -1 - strlen($event->project->namespace));
+	$root = substr($here, 0, -1 - strlen($event->project->path_with_namespace));
+	$up = substr($here, 0, -1 - strlen($event->project->name));
 
 	return preg_replace([
 		'/ +/',
