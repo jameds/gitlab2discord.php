@@ -150,7 +150,6 @@ function markup ($text, $event) {
 
 	return preg_replace([
 		'/ /',
-		'/[*>_`~]/',
 		'/\b([\w_-]+\/[\w_-]+)#(\d+)/',
 		'/\b([\w_-]+\/[\w_-]+)!(\d+)/',
 		'/\b([\w_-]+)#(\d+)/',
@@ -160,7 +159,6 @@ function markup ($text, $event) {
 		'/\[((?:(?!\]).)+)\]\(\/(uploads\/(?:(?!\)).)+)\)/',
 	], [
 		"\u{00a0}", # use a nbsp to prevent squashing into a single character
-		'\\\\$0', # escape markdown characters recognized by Discord
 		"[\$0]($root/\$1/issues/\$2)",
 		"[\$0]($root/\$1/merge_requests/\$2)",
 		"[\$0]($up/\$1/issues/\$2)",
