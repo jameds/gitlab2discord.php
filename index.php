@@ -149,7 +149,7 @@ function markup ($text, $event) {
 	$up = substr($here, 0, -1 - strlen($event->project->name));
 
 	return preg_replace([
-		'/ +/',
+		'/ /',
 		'/\b([\w_-]+\/[\w_-]+)#(\d+)/',
 		'/\b([\w_-]+\/[\w_-]+)!(\d+)/',
 		'/\b([\w_-]+)#(\d+)/',
@@ -158,7 +158,7 @@ function markup ($text, $event) {
 		'/(?:[^!~-])!(\d+)/',
 		'/\[((?:(?!\]).)+)\]\(\/(uploads\/(?:(?!\)).)+)\)/',
 	], [
-		' ',
+		"\u{00a0}", # use a nbsp to prevent squashing into a single character
 		"[\$0]($root/\$1/issues/\$2)",
 		"[\$0]($root/\$1/merge_requests/\$2)",
 		"[\$0]($up/\$1/issues/\$2)",
