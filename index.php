@@ -405,8 +405,13 @@ if (
 EOT;
 			}
 
+			$action = 'Commented';
+
+			if ($event->object_attributes->action === 'update')
+				$action = 'Edited a comment';
+
 			$embed = [
-				'title' => "Commented on $object",
+				'title' => "$action on $object",
 				'url' => $event->object_attributes->url,
 			];
 
